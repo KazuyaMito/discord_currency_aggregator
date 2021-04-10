@@ -11,11 +11,12 @@ ENV TX JST-9
 ENV TERM xterm
 
 WORKDIR /app
-# ADD ./app /app
+ADD ./app /app
 
 RUN apt-get install -y vim less
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
 RUN pip install discord.py
+RUN pip install mysql-connector-python
 
-# CMD python entry.py
+CMD python entry.py
