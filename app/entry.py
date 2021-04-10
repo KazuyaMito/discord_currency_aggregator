@@ -60,4 +60,15 @@ async def aggregate(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command()
+async def clear(ctx):
+    conn.ping(reconnect=True)
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM users")
+    conn.commit()
+    embed = discord.Embed(title="Use Count Clear is Completed.")
+    await ctx.send(embed=embed)
+
+
 bot.run(os.environ['DISCORD_BOT_TOKEN'])
