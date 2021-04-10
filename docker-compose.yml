@@ -1,0 +1,10 @@
+version: '3'
+services:
+  python3:
+    restart: always
+    build: .
+    container_name: 'curency_aggregator'
+    working_dir: '/app/'
+    tty: true
+    volumes:
+      - ./app/:/app/
