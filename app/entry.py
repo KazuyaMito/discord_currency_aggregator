@@ -4,7 +4,7 @@ import mysql.connector
 from urllib.parse import urlparse
 import os
 
-bot = commands.Bot(command_prefix='/')
+bot = commands.Bot(command_prefix='%')
 url = urlparse(os.environ['DATABASE_URL'])
 conn = mysql.connector.connect(
     host = url.hostname,
