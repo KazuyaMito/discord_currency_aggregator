@@ -60,4 +60,4 @@ async def aggregate(ctx):
     await ctx.send(embed=embed)
 
 
-bot.run("")
+bot.run(os.environ['DISCORD_BOT_TOKEN'])
