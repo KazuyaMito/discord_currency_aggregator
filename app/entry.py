@@ -3,7 +3,7 @@ import discord
 import os
 import control_db
 
-bot = commands.Bot(command_prefix='%')
+bot = commands.Bot(command_prefix='&')
 
 @bot.event
 async def on_ready():
