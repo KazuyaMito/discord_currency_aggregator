@@ -84,7 +84,8 @@ def add_guild(guild_id, name):
 
 
 def add_dictionary(word, read, guild_id):
-    dictionary = session.query(Dictionary).filterby(word=word, guild_id=guild_id)
+    dictionary = session.query(Dictionary).filter_by(word=word, guild_id=guild_id).one_or_none()
+    print(dictionary)
     if isinstance(dictionary, type(None)):
         dictionary = Dictionary(word=word, read=read, guild_id=guild_id)
 
@@ -99,7 +100,11 @@ def set_dictionary(read, dictionary):
     session.commit()
 
 
-def get_dictionary(guild_id):
+def get_dictionary(word, guild_id):
+    return session.query(Dictionary).filter_by(word=word, guild_id=guild_id).one_or_none()
+
+
+def get_dictionaries(guild_id):
     return session.query(Dictionary).filter_by(guild_id=guild_id)
 
 

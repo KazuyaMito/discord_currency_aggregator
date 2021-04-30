@@ -42,7 +42,7 @@ class TTS(commands.Cog):
             for ch_key in channel_dict.keys():
                 get_msg = get_msg.replace(ch_key, channel_dict[ch_key], 1)
 
-            words = control_db.get_dictionary(str(guild_id))
+            words = control_db.get_dictionaries(str(guild_id))
             for word in words:
                 get_msg  = get_msg .replace(word.word, word.read)
             get_msg = get_msg.replace('<', '').replace('>', '')
@@ -73,9 +73,9 @@ class TTS(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        if args[0] == "join":
+        if args[0] == "join" or args[0] == "j":
             await self.join(ctx)
-        elif args[0] == "end":
+        elif args[0] == "end" or args[0] == "e":
             await self.end(ctx)
 
 
@@ -109,7 +109,7 @@ class TTS(commands.Cog):
         if not isinstance(voice_channel, type(None)):
             if guild_id in self.voice_channels:
                 await self.voice_channels[guild_id].disconnect()
-                embed = discord.Embed(title="読み上げ終了", description="読み上げを終了しました。")
+                embed = discord.Embed(title="読み上げ終了", description="読み上げを終了しました。", color=0x00ff00)
                 await ctx.send(embed=embed)
                 del self.voice_channels[guild_id]
                 del self.text_channels[guild_id]
@@ -121,12 +121,50 @@ class TTS(commands.Cog):
             await ctx.send(embed=embed)
 
 
+    @commands.command(aliases=["aw"])
+    async def add_word(self, ctx, arg1=None, arg2=None):
+        guild_id = ctx.guild.id
+
+        if arg1 is None or arg2 is None:
+            embed = discord.Embed(title="エラー", description="引数が不足しています。\n`&add_word [登録したい単語] [読み方]`", color=0xff0000)
+            await ctx.send(embed=embed)
+            return
+        else:
+            control_db.add_dictionary(arg1, arg2, str(guild_id))
+            embed = discord.Embed(title="単語登録", description="単語を登録しました。", color=0xff8c00)
+            embed.add_field(name="単語", value=arg1, inline=True)
+            embed.add_field(name="読み", value=arg2, inline=True)
+            await ctx.send(embed=embed)
+
+
+    @commands.command(aliases=["dw"])
+    async def delete_word(self, ctx, arg=None):
+        guild_id = ctx.guild.id
+
+        if arg is None:
+            embed = discord.Embed(title="エラー", description="引数が不足しています。\n`&delete_word [削除したい単語]`", color=0xff0000)
+            await ctx.send(embed=embed)
+            return
+        else:
+            self.delete_dictionary_db(arg, guild_id)
+            embed = discord.Embed(title="単語削除", description="単語「{}」を削除しました。".format(arg), color=0xff8c00)
+            await ctx.send(embed=embed)
+
+
     def add_guild_db(self, guild):
         guild_id_str = str(guild.id)
         guild = control_db.get_guild(guild_id_str)
 
         if isinstance(guild, type(None)):
             control_db.add_guild(guild_id_str, guild.name)
+
+
+    def delete_dictionary_db(self, word, guild_id):
+        guild_id_str = str(guild_id)
+        dictionary = control_db.get_dictionary(word=word, guild_id=guild_id_str)
+
+        if not isinstance(dictionary, type(None)):
+            control_db.delete_dictionary(dictionary.id, dictionary.guild_id)
 
 
 def setup(bot):
