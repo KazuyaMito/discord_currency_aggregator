@@ -30,7 +30,8 @@ class TTS(commands.Cog):
                 get_msg = get_msg.replace(word.word, word.read)
                 if guild.is_name_read == True:
                     name = message.author.display_name.replace(word.word, word.read)
-                    get_msg = "{}、{}".format(name, get_msg)
+
+            get_msg = "{}、{}".format(name, get_msg)
 
             get_msg = get_msg.replace('<:', '')
             get_msg = re.sub(r':[0-9]*>', '', get_msg)
