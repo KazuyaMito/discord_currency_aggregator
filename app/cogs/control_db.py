@@ -52,22 +52,35 @@ def add_user(user_id, user_name, use_count):
     session.add(user)
     session.commit()
 
+
 def get_user(user_id):
     return session.query(User).filter_by(user_id=user_id).one_or_none()
 
+
 def get_users():
     return session.query(User).all()
+
 
 def update_user_use_count(user, use_count):
     user.use_count = use_count
     session.commit()
 
+
 def delete_all_users():
     session.query(User).delete()
     session.commit()
 
+
 def get_guild(guild_id):
     return session.query(Guild).filter_by(id=guild_id).one_or_none()
+
+
+def add_guild(guild_id, name):
+    guild = Guild(guild_id=guild_id, name=name)
+
+    session.add(guild)
+    session.commit()
+
 
 def add_dictionary(word, read, guild_id):
     dictionary = session.query(Dictionary).filterby(word=word, guild_id=guild_id)
@@ -79,12 +92,15 @@ def add_dictionary(word, read, guild_id):
     else:
         set_dictionary(read, dictionary)
 
+
 def set_dictionary(read, dictionary):
     dictionary.read = read
     session.commit()
 
+
 def get_dictionary(guild_id):
     return session.query(Dictionary).filter_by(guild_id=guild_id)
+
 
 def delete_dictionary(id, guild_id):
     dictionary = session.query(Dictionary).filter_by(id=id, guild_id=guild_id).one_or_none()
