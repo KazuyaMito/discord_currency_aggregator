@@ -10,7 +10,7 @@ import os
 
 Base = declarative_base()
 url = urlparse(os.environ['DATABASE_URL'])
-engine = create_engine("mysql+pymysql://{}:{}@{}:3306/{}?charset=utf8".format(url.username, url.password, url.hostname, url.path[1:]))
+engine = create_engine("mysql+pymysql://{}:{}@{}:3306/{}?charset=utf8".format(url.username, url.password, url.hostname, url.path[1:]), pool_recycle=3600)
 
 class User(Base):
     __tablename__ = "users"
