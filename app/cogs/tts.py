@@ -207,9 +207,9 @@ class TTS(commands.Cog):
 
     def add_guild_db(self, guild):
         guild_id_str = str(guild.id)
-        guild = control_db.get_guild(guild_id_str)
+        guild_db = control_db.get_guild(guild_id_str)
 
-        if isinstance(guild, type(None)):
+        if isinstance(guild_db, type(None)):
             control_db.add_guild(guild_id_str, guild.name)
 
 

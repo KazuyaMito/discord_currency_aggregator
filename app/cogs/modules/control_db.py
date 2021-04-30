@@ -23,8 +23,8 @@ class Guild(Base):
     __tablename__ = "guilds"
     id = Column(String(255), primary_key=True)
     name = Column(String(255))
-    is_name_read = Column(Boolean, nullable=False, server_default="False")
-    is_multi_line_read = Column(Boolean, nullable=False, server_default="False")
+    is_name_read = Column(Boolean, nullable=False, server_default="0")
+    is_multi_line_read = Column(Boolean, nullable=False, server_default="0")
     dictionary = orm.relationship("Dictionary")
 
 
