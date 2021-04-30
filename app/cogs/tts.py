@@ -54,6 +54,9 @@ class TTS(commands.Cog):
             if guild.is_name_read == True:
                 get_msg = "{}、{}".format(message.author.display_name, get_msg)
 
+            while (self.voice_channels[guild_id].is_playing()):
+                await asyncio.sleep(1)
+
             try:
                 rawfile_name = jtalk.jtalk(get_msg)
             except:
