@@ -20,12 +20,20 @@ class TTS(commands.Cog):
         guild_id = message.guild.id
         if message.channel.id == self.text_channels[guild_id]:
             get_msg = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
-            get_msg = get_msg.replace('<:', '')
-            get_msg = re.sub(r':[0-9]*>', '', get_msg)
 
             guild = control_db.get_guild(str(guild_id))
             if guild.is_multi_line_read == True:
                 get_msg = get_msg.replace('\n', '、')
+
+            words = control_db.get_dictionaries(str(guild_id))
+            for word in words:
+                get_msg = get_msg.replace(word.word, word.read)
+                if guild.is_name_read == True:
+                    name = message.author.display_name.replace(word.word, word.read)
+                    get_msg = "{}、{}".format(name, get_msg)
+
+            get_msg = get_msg.replace('<:', '')
+            get_msg = re.sub(r':[0-9]*>', '', get_msg)
 
             mention_list = message.raw_mentions
             channel_list = message.raw_channel_mentions
@@ -46,13 +54,7 @@ class TTS(commands.Cog):
             for ch_key in channel_dict.keys():
                 get_msg = get_msg.replace(ch_key, channel_dict[ch_key], 1)
 
-            words = control_db.get_dictionaries(str(guild_id))
-            for word in words:
-                get_msg  = get_msg .replace(word.word, word.read)
-            get_msg = get_msg.replace('<', '').replace('>', '')
-
-            if guild.is_name_read == True:
-                get_msg = "{}、{}".format(message.author.display_name, get_msg)
+            # get_msg = get_msg.replace('<', '').replace('>', '')
 
             while (self.voice_channels[guild_id].is_playing()):
                 await asyncio.sleep(1)

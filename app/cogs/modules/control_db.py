@@ -3,7 +3,8 @@ from sqlalchemy.types import Integer, String, Boolean
 from sqlalchemy.dialects.mysql import BIGINT as Bigint
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, orm, ForeignKey
+from sqlalchemy.pool import Pool
+from sqlalchemy import create_engine, orm, ForeignKey, event, exc
 from urllib.parse import urlparse
 import os
 
@@ -132,3 +133,13 @@ def set_read_multi_line(read_multi, guild_id):
 
     guild.is_multi_line_read = read_multi
     session.commit()
+
+
+@event.listens_for(Pool, "checkout")
+def ping_connection(dbapi_connection, connection_record, connection_proxy):
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("SELECT 1")
+    except:
+        raise exc.DisconnectionError()
+    cursor.close()
