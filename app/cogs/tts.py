@@ -1,12 +1,67 @@
 import discord
+import re
+import asyncio
+import os
 from discord.ext import commands
-from . import control_db
+from .modules import control_db, jtalk
 
 class TTS(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.voice_channels = {}
         self.text_channels = {}
+
+
+    @commands.Cog.listener(name='on_message')
+    async def on_message(self, message):
+        if message.author.bot or isinstance(message.guild, type(None)) or message.content.startswith('&'):
+            return
+
+        guild_id = message.guild.id
+        if message.channel.id == self.text_channels[guild_id]:
+            get_msg  = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
+            get_msg  = get_msg .replace('<:', '')
+            get_msg  = re.sub(r':[0-9]*>', '', get_msg )
+
+            mention_list = message.raw_mentions
+            channel_list = message.raw_channel_mentions
+            mention_dict = {}
+            channel_dict = {}
+            for ment in mention_list:
+                if ment == message.author.id:
+                    mention_dict['<@!{}>'.format(str(ment))] = message.guild.get_member(ment).name
+                else:
+                    mention_dict['<@{}>'.format(str(ment))] = message.guild.get_member(ment).name
+
+            for cnls in channel_list:
+                channel_dict['<#{}>'.format(str(cnls))] = message.guild.get_channel(cnls).name
+
+            for me_key in mention_dict.keys():
+                get_msg = get_msg.replace(me_key, mention_dict[me_key], 1)
+
+            for ch_key in channel_dict.keys():
+                get_msg = get_msg.replace(ch_key, channel_dict[ch_key], 1)
+
+            words = control_db.get_dictionary(str(guild_id))
+            for word in words:
+                get_msg  = get_msg .replace(word.word, word.read)
+            get_msg = get_msg.replace('<', '').replace('>', '')
+
+            is_nameread = control_db.get_guild(str(guild_id)).is_name_read
+            print(is_nameread)
+            if is_nameread == True:
+                get_msg = "{}、{}".format(message.author.display_name, get_msg)
+
+            try:
+                rawfile_name = jtalk.jtalk(get_msg)
+            except:
+                embed = discord.Embed(title="エラー", description="読み上げ時にエラーが発生しました。")
+                await message.channel.send(embed=embed)
+
+            rawfile_path = rawfile_name
+            self.voice_channels[guild_id].play(discord.FFmpegPCMAudio(rawfile_path, options="-af \"volume=0.1\""))
+            await asyncio.sleep(0.5)
+            os.remove(rawfile_path)
 
 
     @commands.command()
@@ -27,6 +82,8 @@ class TTS(commands.Cog):
     async def join(self, ctx):
         guild_id = ctx.guild.id
         voice_channel = ctx.author.voice
+
+        self.add_guild_db(ctx.guild)
 
         if guild_id in self.voice_channels:
             await self.voice_channels[guild_id].disconnect()

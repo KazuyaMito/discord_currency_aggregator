@@ -1,5 +1,5 @@
 from sqlalchemy.schema import Column
-from sqlalchemy.types import Integer, String
+from sqlalchemy.types import Integer, String, Boolean
 from sqlalchemy.dialects.mysql import BIGINT as Bigint
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.declarative import declarative_base
@@ -23,6 +23,7 @@ class Guild(Base):
     __tablename__ = "guilds"
     id = Column(String(255), primary_key=True)
     name = Column(String(255))
+    is_name_read = Column(Boolean, nullable=False, server_default="False")
     dictionary = orm.relationship("Dictionary")
 
 
@@ -76,7 +77,7 @@ def get_guild(guild_id):
 
 
 def add_guild(guild_id, name):
-    guild = Guild(guild_id=guild_id, name=name)
+    guild = Guild(id=guild_id, name=name)
 
     session.add(guild)
     session.commit()

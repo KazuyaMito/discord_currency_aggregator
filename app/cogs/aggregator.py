@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from . import control_db
+from .modules import control_db
 
 class Aggregator(commands.Cog):
     def __init__(self, bot):
