@@ -14,14 +14,18 @@ class TTS(commands.Cog):
 
     @commands.Cog.listener(name='on_message')
     async def on_message(self, message):
-        if message.author.bot or isinstance(message.guild, type(None)) or message.content.startswith('&'):
+        if message.author.bot or isinstance(message.guild, type(None)) or message.content.startswith('&') or message.content.startswith(';'):
             return
 
         guild_id = message.guild.id
         if message.channel.id == self.text_channels[guild_id]:
-            get_msg  = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
-            get_msg  = get_msg .replace('<:', '')
-            get_msg  = re.sub(r':[0-9]*>', '', get_msg )
+            get_msg = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
+            get_msg = get_msg.replace('<:', '')
+            get_msg = re.sub(r':[0-9]*>', '', get_msg)
+
+            guild = control_db.get_guild(str(guild_id))
+            if guild.is_multi_line_read == True:
+                get_msg = get_msg.replace('\n', '、')
 
             mention_list = message.raw_mentions
             channel_list = message.raw_channel_mentions
@@ -47,9 +51,7 @@ class TTS(commands.Cog):
                 get_msg  = get_msg .replace(word.word, word.read)
             get_msg = get_msg.replace('<', '').replace('>', '')
 
-            is_nameread = control_db.get_guild(str(guild_id)).is_name_read
-            print(is_nameread)
-            if is_nameread == True:
+            if guild.is_name_read == True:
                 get_msg = "{}、{}".format(message.author.display_name, get_msg)
 
             try:
@@ -68,8 +70,10 @@ class TTS(commands.Cog):
     async def tts(self, ctx, *args):
         if len(args) == 0:
             embed = discord.Embed(title="Text To Speach", description="チャットの読み上げ機能が利用できます。", color=0x00bfff)
-            embed.add_field(name="join", value="コマンドを実行したユーザーがいるボイスチャンネルにBotが入室します。\nボイスチャンネルが特定できない場合は、エラーになります。", inline=False)
-            embed.add_field(name="end", value="読み上げを終了し、Botがボイスチャンネルから退出します。\n読み上げが開始されていない場合は、エラーになります。", inline=False)
+            embed.add_field(name="join", value="コマンドを実行したユーザーがいるボイスチャンネルにBotが入室します。\nコマンドはjと省略できます。", inline=False)
+            embed.add_field(name="end", value="読み上げを終了し、Botがボイスチャンネルから退出します。\nコマンドはeと省略できます。", inline=False)
+            embed.add_field(name="read_name", value="名前読み上げの設定を変更します。\n`&tts read_name [on / off]`\nコマンドはrnと省略できます。", inline=False)
+            embed.add_field(name="read_name", value="複数行読み上げの設定を変更します。\n`&tts read_multi [on / off]`\nコマンドはrmと省略できます。", inline=False)
             await ctx.send(embed=embed)
             return
 
@@ -77,6 +81,10 @@ class TTS(commands.Cog):
             await self.join(ctx)
         elif args[0] == "end" or args[0] == "e":
             await self.end(ctx)
+        elif args[0] == "read_name" or args[0] == "rn":
+            await self.read_name(ctx, args[1])
+        elif args[0] == "read_multi" or args[0] == "rm":
+            await self.read_multi(ctx, args[1])
 
 
     async def join(self, ctx):
@@ -118,6 +126,52 @@ class TTS(commands.Cog):
                 await ctx.send(embed=embed)
         else:
             embed = discord.Embed(title="エラー", description="ボイスチャンネルに接続してからコマンドを実行してください", color=0xff0000)
+            await ctx.send(embed=embed)
+
+
+    async def read_name(self, ctx, read_name=None):
+        guild_id = ctx.guild.id
+        guild = control_db.get_guild(str(guild_id))
+        if guild is None:
+            embed = discord.Embed(title="エラー", description="guild_id: {}は登録されていません。\n`&tts join` を正常に使うことで登録されます。".format(guild_id), color=0xff0000)
+            await ctx.send(embed=embed)
+            return
+        else:
+            if read_name == "on":
+                readable = True
+            elif read_name == "off":
+                readable = False
+            else:
+                embed = discord.Embed(title="エラー", description="`on` または `off` で指定してください", color=0xff0000)
+                await ctx.send(embed=embed)
+                return
+
+            control_db.set_read_name(readable, str(guild_id))
+            embed = discord.Embed(title="サーバー設定", description="設定を更新しました", color=0x00ff00)
+            embed.add_field(name="名前読み上げ", value=read_name.upper())
+            await ctx.send(embed=embed)
+
+
+    async def read_multi(self, ctx, read_multi=None):
+        guild_id = ctx.guild.id
+        guild = control_db.get_guild(str(guild_id))
+        if guild is None:
+            embed = discord.Embed(title="エラー", description="guild_id: {}は登録されていません。\n`&tts join` を正常に使うことで登録されます。".format(guild_id), color=0xff0000)
+            await ctx.send(embed=embed)
+            return
+        else:
+            if read_multi == "on":
+                multi = True
+            elif read_multi == "off":
+                multi = False
+            else:
+                embed = discord.Embed(title="エラー", description="`on` または `off` で指定してください", color=0xff0000)
+                await ctx.send(embed=embed)
+                return
+
+            control_db.set_read_multi_line(multi, str(guild_id))
+            embed = discord.Embed(title="サーバー設定", description="設定を更新しました。", color=0x00ff00)
+            embed.add_field(name="複数行読み上げ", value=read_multi.upper())
             await ctx.send(embed=embed)
 
 

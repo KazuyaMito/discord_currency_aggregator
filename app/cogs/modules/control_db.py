@@ -24,6 +24,7 @@ class Guild(Base):
     id = Column(String(255), primary_key=True)
     name = Column(String(255))
     is_name_read = Column(Boolean, nullable=False, server_default="False")
+    is_multi_line_read = Column(Boolean, nullable=False, server_default="False")
     dictionary = orm.relationship("Dictionary")
 
 
@@ -117,3 +118,17 @@ def delete_dictionary(id, guild_id):
         session.delete(dictionary)
         session.commit()
         return True
+
+
+def set_read_name(read_name, guild_id):
+    guild = get_guild(guild_id=guild_id)
+
+    guild.is_name_read = read_name
+    session.commit()
+
+
+def set_read_multi_line(read_multi, guild_id):
+    guild = get_guild(guild_id=guild_id)
+
+    guild.is_multi_line_read = read_multi
+    session.commit()
