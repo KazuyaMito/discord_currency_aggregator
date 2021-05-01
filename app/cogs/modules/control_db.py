@@ -162,8 +162,7 @@ def delete_dictionary(id, guild_id):
 def set_read_name(read_name, guild_id):
     Session = orm.sessionmaker(engine)
     session = Session()
-    guild = get_guild(guild_id=guild_id)
-
+    guild = session.query(Guild).filter_by(id=guild_id).one()
     guild.is_name_read = read_name
     session.commit()
     session.close()
@@ -172,8 +171,7 @@ def set_read_name(read_name, guild_id):
 def set_read_multi_line(read_multi, guild_id):
     Session = orm.sessionmaker(engine)
     session = Session()
-    guild = get_guild(guild_id=guild_id)
-
+    guild = session.query(Guild).filter_by(id=guild_id).one()
     guild.is_multi_line_read = read_multi
     session.commit()
     session.close()

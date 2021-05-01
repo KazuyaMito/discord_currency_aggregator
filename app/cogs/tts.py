@@ -18,20 +18,20 @@ class TTS(commands.Cog):
             return
 
         guild_id = message.guild.id
-        if message.channel.id == self.text_channels[guild_id]:
+        if guild_id in self.text_channels and message.channel.id == self.text_channels[guild_id]:
             get_msg = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
 
             guild = control_db.get_guild(str(guild_id))
-            if guild.is_multi_line_read == True:
+            if guild.is_multi_line_read:
                 get_msg = get_msg.replace('\n', '、')
 
             words = control_db.get_dictionaries(str(guild_id))
+            if guild.is_name_read:
+                name = message.author.display_name
+                get_msg = "{}、{}".format(name, get_msg)
+
             for word in words:
                 get_msg = get_msg.replace(word.word, word.read)
-                if guild.is_name_read == True:
-                    name = message.author.display_name.replace(word.word, word.read)
-
-            get_msg = "{}、{}".format(name, get_msg)
 
             get_msg = get_msg.replace('<:', '')
             get_msg = re.sub(r':[0-9]*>', '', get_msg)
@@ -70,6 +70,23 @@ class TTS(commands.Cog):
             self.voice_channels[guild_id].play(discord.FFmpegPCMAudio(rawfile_path, options="-af \"volume=0.1\""))
             await asyncio.sleep(0.5)
             os.remove(rawfile_path)
+
+
+    @commands.Cog.listener(name='on_voice_state_update')
+    async def on_voice_state_update(self, member, before, after):
+        if not isinstance(member.guild, type(None)) and before.channel is not None:
+            guild_id = member.guild.id
+            if guild_id in self.voice_channels:
+                members = before.channel.members
+                if len(members) == 1 and members[0].id == self.bot.user.id:
+                    await self.voice_channels[guild_id].disconnect()
+
+                    embed = discord.Embed(title="読み上げ終了", description="誰もいなくなったため、読み上げを終了しました。", color=0x00ff00)
+                    text_channel = next(filter(lambda c: c.id == self.text_channels[guild_id], member.guild.text_channels), None)
+                    await text_channel.send(embed=embed)
+
+                    del self.voice_channels[guild_id]
+                    del self.text_channels[guild_id]
 
 
     @commands.command()
@@ -118,20 +135,15 @@ class TTS(commands.Cog):
 
     async def end(self, ctx):
         guild_id = ctx.guild.id
-        voice_channel = ctx.author.voice
 
-        if not isinstance(voice_channel, type(None)):
-            if guild_id in self.voice_channels:
-                await self.voice_channels[guild_id].disconnect()
-                embed = discord.Embed(title="読み上げ終了", description="読み上げを終了しました。", color=0x00ff00)
-                await ctx.send(embed=embed)
-                del self.voice_channels[guild_id]
-                del self.text_channels[guild_id]
-            else:
-                embed = discord.Embed(title="エラー", description="読み上げが開始されていません", color=0xff0000)
-                await ctx.send(embed=embed)
+        if guild_id in self.voice_channels:
+            await self.voice_channels[guild_id].disconnect()
+            embed = discord.Embed(title="読み上げ終了", description="読み上げを終了しました。", color=0x00ff00)
+            await ctx.send(embed=embed)
+            del self.voice_channels[guild_id]
+            del self.text_channels[guild_id]
         else:
-            embed = discord.Embed(title="エラー", description="ボイスチャンネルに接続してからコマンドを実行してください", color=0xff0000)
+            embed = discord.Embed(title="エラー", description="読み上げが開始されていません", color=0xff0000)
             await ctx.send(embed=embed)
 
 
