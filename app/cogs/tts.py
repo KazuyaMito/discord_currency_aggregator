@@ -22,16 +22,16 @@ class TTS(commands.Cog):
             get_msg = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
 
             guild = control_db.get_guild(str(guild_id))
-            if guild.is_multi_line_read:
+            if guild["is_multi_line_read"]:
                 get_msg = get_msg.replace('\n', '、')
 
             words = control_db.get_dictionaries(str(guild_id))
-            if guild.is_name_read:
+            if guild["is_name_read"]:
                 name = message.author.display_name
                 get_msg = "{}、{}".format(name, get_msg)
 
             for word in words:
-                get_msg = get_msg.replace(word.word, word.read)
+                get_msg = get_msg.replace(word["word"], word["read"])
 
             get_msg = get_msg.replace('<:', '')
             get_msg = re.sub(r':[0-9]*>', '', get_msg)
@@ -236,7 +236,7 @@ class TTS(commands.Cog):
         dictionary = control_db.get_dictionary(word=word, guild_id=guild_id_str)
 
         if not isinstance(dictionary, type(None)):
-            control_db.delete_dictionary(dictionary.id, dictionary.guild_id)
+            control_db.delete_dictionary(dictionary["id"])
 
 
 def setup(bot):

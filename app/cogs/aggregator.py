@@ -16,20 +16,20 @@ class Aggregator(commands.Cog):
             mention_name = message.author.name
             use_count = 0
 
-            user = control_db.get_user(user_id)
-            if user is None:
+            user_use_count = control_db.get_user_use_count(user_id)
+            if user_use_count is None:
                 use_count = 1
                 control_db.add_user(user_id, mention_name, use_count)
             else:
-                use_count = user.use_count + 1
-                control_db.update_user_use_count(user, use_count)
+                use_count = user_use_count.use_count + 1
+                control_db.update_user_use_count(user_id, mention_name, use_count)
 
     @commands.command()
     async def aggregate(self, ctx):
         embed = discord.Embed(title="Aggregate Result", description="The result of counting the number of times the \"use\" command was used in MEE6.", color=0xff0000)
         users = control_db.get_users()
         for user in users:
-            embed.add_field(name=user.user_name, value=user.use_count, inline=False)
+            embed.add_field(name=user["user_name"], value=user["use_count"], inline=False)
 
         await ctx.send(embed=embed)
 
