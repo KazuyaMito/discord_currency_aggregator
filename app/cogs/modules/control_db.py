@@ -1,187 +1,178 @@
-from sqlalchemy.schema import Column
-from sqlalchemy.types import Integer, String, Boolean
-from sqlalchemy.dialects.mysql import BIGINT as Bigint
-from sqlalchemy.dialects.mysql import INTEGER
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.pool import Pool
-from sqlalchemy import create_engine, orm, ForeignKey, event, exc
+import pymysql.cursors
 from urllib.parse import urlparse
 import os
 
-Base = declarative_base()
 url = urlparse(os.environ['DATABASE_URL'])
-engine = create_engine("mysql+pymysql://{}:{}@{}:3306/{}?charset=utf8".format(url.username, url.password, url.hostname, url.path[1:]), pool_recycle=3600)
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Bigint(unsigned=True), nullable=False, unique=True)
-    user_name = Column(String(255), nullable=False)
-    use_count = Column(INTEGER(unsigned=True), nullable=False, server_default="0")
-
-
-class Guild(Base):
-    __tablename__ = "guilds"
-    id = Column(String(255), primary_key=True)
-    name = Column(String(255))
-    is_name_read = Column(Boolean, nullable=False, server_default="0")
-    is_multi_line_read = Column(Boolean, nullable=False, server_default="0")
-    dictionary = orm.relationship("Dictionary")
+conn = pymysql.connect(
+    host=url.hostname,
+    user=url.username,
+    password=url.password,
+    db=url.path[1:],
+    charset='utf8mb4',
+    cursorclass=pymysql.cursors.DictCursor)
 
 
-class Dictionary(Base):
-    __tablename__ = "dictionaries"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    word = Column(String(255))
-    read = Column(String(255))
-    guild_id = Column(String(255), ForeignKey('guilds.id', onupdate='CASCADE', ondelete='CASCADE'))
+def get_user_use_count(user_id):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT use_count FROM users WHERE user_id = %s", user_id)
+            result = cursor.fetchall()
+
+            return result[0] if len(result) > 0 else None
+    finally:
+        cursor.close()
 
 
-def main():
-    Base.metadata.create_all(engine)
+def add_user(user_id, mention_name, use_count):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("INSERT INTO users (user_id, user_name, use_count) VALUES (%s, %s, %s)", (user_id, mention_name, use_count))
+            conn.commit()
+
+    finally:
+        cursor.close()
 
 
-if __name__ == "__main__":
-    main()
+def update_user_use_count(user_id, mention_name, use_count):
+    conn.ping(reconnect=True)
 
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id, ))
+            result = cursor.fetchall()
 
-def add_user(user_id, user_name, use_count):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    user = User(user_id=user_id, user_name=user_name, use_count=use_count)
-
-    session.add(user)
-    session.commit()
-    session.close()
-
-
-def get_user(user_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    user = session.query(User).filter_by(user_id=user_id).one_or_none()
-    session.close()
-    return user
+            if len(result) <= 0:
+                cursor.execute("INSERT INTO users (user_id, user_name, use_count) VALUES (%s, %s, %s)", (user_id, mention_name, use_count))
+                conn.commit()
+            else:
+                cursor.execute("UPDATE user SET use_count = %s WHERE user_id = %s", (user_id, use_count))
+                conn.commit()
+    finally:
+        cursor.close()
 
 
 def get_users():
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    users = session.query(User).all()
-    session.close()
-    return users
+    conn.ping(reconnect=True)
 
-
-def update_user_use_count(user, use_count):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    user.use_count = use_count
-    session.commit()
-    session.close()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT user_name, use_count FROM users")
+            return cursor.fetchall()
+    finally:
+        cursor.close()
 
 
 def delete_all_users():
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    session.query(User).delete()
-    session.commit()
-    session.close()
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("TRUNCATE TABLE users")
+            conn.commit()
+    finally:
+        cursor.close()
 
 
 def get_guild(guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    guild = session.query(Guild).filter_by(id=guild_id).one_or_none()
-    session.close()
-    return guild
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT is_multi_line_read, is_name_read FROM guilds WHERE id = %s", (guild_id, ))
+            result = cursor.fetchall()
+
+            return result[0] if len(result) > 0 else None
+    finally:
+        cursor.close()
 
 
 def add_guild(guild_id, name):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    guild = Guild(id=guild_id, name=name)
+    conn.ping(reconnect=True)
 
-    session.add(guild)
-    session.commit()
-    session.close()
-
-
-def add_dictionary(word, read, guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    dictionary = session.query(Dictionary).filter_by(word=word, guild_id=guild_id).one_or_none()
-    print(dictionary)
-    if isinstance(dictionary, type(None)):
-        dictionary = Dictionary(word=word, read=read, guild_id=guild_id)
-
-        session.add(dictionary)
-        session.commit()
-        session.close()
-    else:
-        set_dictionary(read, dictionary)
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("INSERT INTO guilds (id, name) VALUES (%s, %s)", (guild_id, name))
+            conn.commit()
+    finally:
+        cursor.close()
 
 
-def set_dictionary(read, dictionary):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    dictionary.read = read
-    session.commit()
-    session.close()
+def set_read_name(readable, guild_id):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE guilds SET is_name_read = %s WHERE id = %s", (readable, guild_id))
+            conn.commit()
+    finally:
+        cursor.close()
+
+
+def set_read_multi_line(readable, guild_id):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE guilds SET is_multi_line_read = %s WHERE id = %s", (readable, guild_id))
+            conn.commit()
+    finally:
+        cursor.close()
 
 
 def get_dictionary(word, guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    dictionary = session.query(Dictionary).filter_by(word=word, guild_id=guild_id).one_or_none()
-    session.close()
-    return dictionary
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT id FROM dictionaries WHERE word = %s AND guild_id = %s", (word, guild_id))
+            result = cursor.fetchall()
+
+            return result[0] if len(result) > 0 else None
+    finally:
+        cursor.close()
 
 
 def get_dictionaries(guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    dictionaries = session.query(Dictionary).filter_by(guild_id=guild_id)
-    session.close()
-    return dictionaries
+    conn.ping(reconnect=True)
 
-
-def delete_dictionary(id, guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    dictionary = session.query(Dictionary).filter_by(id=id, guild_id=guild_id).one_or_none()
-
-    if isinstance(dictionary, type(None)):
-        session.close()
-        return None
-    else:
-        session.delete(dictionary)
-        session.commit()
-        session.close()
-        return True
-
-
-def set_read_name(read_name, guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    guild = session.query(Guild).filter_by(id=guild_id).one()
-    guild.is_name_read = read_name
-    session.commit()
-    session.close()
-
-
-def set_read_multi_line(read_multi, guild_id):
-    Session = orm.sessionmaker(engine)
-    session = Session()
-    guild = session.query(Guild).filter_by(id=guild_id).one()
-    guild.is_multi_line_read = read_multi
-    session.commit()
-    session.close()
-
-
-@event.listens_for(Pool, "checkout")
-def ping_connection(dbapi_connection, connection_record, connection_proxy):
-    cursor = dbapi_connection.cursor()
     try:
-        cursor.execute("SELECT 1")
-    except:
-        raise exc.DisconnectionError()
-    cursor.close()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT dictionaries.word, dictionaries.read FROM dictionaries WHERE dictionaries.guild_id = %s", (guild_id, ))
+            result = cursor.fetchall()
+
+            return result if len(result) > 0 else {}
+    finally:
+        cursor.close()
+
+
+def add_dictionary(word, read, guild_id):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT id FROM dictionaries WHERE word = %s", (word, ))
+            result = cursor.fetchall()
+
+            if len(result) > 0:
+                cursor.execute("UPDATE dictionaries SET read = %s WHERE id = %s", (read, result[0]["id"]))
+                conn.commit()
+            else:
+                cursor.execute("INSERT INTO dictionaries (dictionaries.word, dictionaries.read, dictionaries.guild_id) VALUES (%s, %s, %s)", (word, read, guild_id))
+                conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_dictionary(id):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM dictionaries WHERE id = %s", (id, ))
+            conn.commit()
+    finally:
+        cursor.close()
