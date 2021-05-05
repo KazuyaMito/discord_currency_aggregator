@@ -19,43 +19,45 @@ class TTS(commands.Cog):
 
         guild_id = message.guild.id
         if guild_id in self.text_channels and message.channel.id == self.text_channels[guild_id]:
-            get_msg = re.sub(r'http(s)?://([\w-]+\.)+[\w-]+(/[-\w ./?%&=]*)?', 'URL省略', message.content)
+            # URL省略処理
+            get_msg = re.sub(r'https?://[\w/:%#\$&\?\(\)~\.=\+\-]+', 'URL省略', message.content)
 
+            # 複数行読み上げ
             guild = control_db.get_guild(str(guild_id))
             if guild["is_multi_line_read"]:
                 get_msg = get_msg.replace('\n', '、')
 
-            words = control_db.get_dictionaries(str(guild_id))
+            # 名前読み上げ
             if guild["is_name_read"]:
                 name = message.author.display_name
                 get_msg = "{}、{}".format(name, get_msg)
 
+            # 単語登録処理
+            words = control_db.get_dictionaries(str(guild_id))
             for word in words:
                 get_msg = get_msg.replace(word["word"], word["read"])
 
+            # Discordスタンプ
             get_msg = get_msg.replace('<:', '')
             get_msg = re.sub(r':[0-9]*>', '', get_msg)
 
-            mention_list = message.raw_mentions
-            channel_list = message.raw_channel_mentions
-            mention_dict = {}
-            channel_dict = {}
-            for ment in mention_list:
-                if ment == message.author.id:
-                    mention_dict['<@!{}>'.format(str(ment))] = message.guild.get_member(ment).name
-                else:
-                    mention_dict['<@{}>'.format(str(ment))] = message.guild.get_member(ment).name
+            # メンションのパース(display_nameに置き換え)
+            if len(message.mentions) > 0:
+                for user in message.mentions:
+                    name = user.display_name
+                    get_msg = re.sub(r'<(?:@\!|@)[0-9]+>', name, get_msg)
 
-            for cnls in channel_list:
-                channel_dict['<#{}>'.format(str(cnls))] = message.guild.get_channel(cnls).name
+            # チャンネルメンションのパース
+            if len(message.channel_mentions) > 0:
+                for channel in message.channel_mentions:
+                    name = channel.name
+                    get_msg = re.sub(r'<#[0-9]+>', name, get_msg)
 
-            for me_key in mention_dict.keys():
-                get_msg = get_msg.replace(me_key, mention_dict[me_key], 1)
-
-            for ch_key in channel_dict.keys():
-                get_msg = get_msg.replace(ch_key, channel_dict[ch_key], 1)
-
-            # get_msg = get_msg.replace('<', '').replace('>', '')
+            # ロールメンションのパース
+            if len(message.role_mentions) > 0:
+                for role in message.role_mentions:
+                    name = role.name
+                    get_msg = re.sub(r'<@&[0-9]+>', name, get_msg)
 
             while (self.voice_channels[guild_id].is_playing()):
                 await asyncio.sleep(1)
