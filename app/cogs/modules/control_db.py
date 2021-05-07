@@ -158,7 +158,7 @@ def add_dictionary(word, read, guild_id):
             result = cursor.fetchall()
 
             if len(result) > 0:
-                cursor.execute("UPDATE dictionaries SET read = %s WHERE id = %s", (read, result[0]["id"]))
+                cursor.execute("UPDATE dictionaries SET dictionaries.read = %s WHERE dictionaries.id = %s", (read, result[0]["id"]))
                 conn.commit()
             else:
                 cursor.execute("INSERT INTO dictionaries (dictionaries.word, dictionaries.read, dictionaries.guild_id) VALUES (%s, %s, %s)", (word, read, guild_id))
