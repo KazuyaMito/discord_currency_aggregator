@@ -63,6 +63,11 @@ class TTS(commands.Cog):
                 await asyncio.sleep(1)
 
             try:
+                # 文字数制限
+                read_limit = guild["read_limit"]
+                if read_limit > 0:
+                    get_msg = get_msg[:read_limit]
+
                 rawfile_name = jtalk.jtalk(get_msg)
             except:
                 embed = discord.Embed(title="エラー", description="読み上げ時にエラーが発生しました。")
@@ -99,6 +104,7 @@ class TTS(commands.Cog):
             embed.add_field(name="end", value="読み上げを終了し、Botがボイスチャンネルから退出します。\nコマンドはeと省略できます。", inline=False)
             embed.add_field(name="read_name", value="名前読み上げの設定を変更します。\n`&tts read_name [on / off]`\nコマンドはrnと省略できます。", inline=False)
             embed.add_field(name="read_name", value="複数行読み上げの設定を変更します。\n`&tts read_multi [on / off]`\nコマンドはrmと省略できます。", inline=False)
+            embed.add_field(name="read_limit", value="読み上げ文字数の上限を変更します。\n`&tts read_limit [0-9]`\nコマンドはrlと省略できます。", inline=False)
             await ctx.send(embed=embed)
             return
 
@@ -110,6 +116,8 @@ class TTS(commands.Cog):
             await self.read_name(ctx, args[1])
         elif args[0] == "read_multi" or args[0] == "rm":
             await self.read_multi(ctx, args[1])
+        elif args[0] == "read_limit" or args[0] == "rl":
+            await self.read_limit(ctx, args[1])
 
 
     async def join(self, ctx):
@@ -193,6 +201,28 @@ class TTS(commands.Cog):
             embed = discord.Embed(title="サーバー設定", description="設定を更新しました。", color=0x00ff00)
             embed.add_field(name="複数行読み上げ", value=read_multi.upper())
             await ctx.send(embed=embed)
+
+
+    async def read_limit(self, ctx, limit=None):
+        guild_id = ctx.guild.id
+
+        if limit is None:
+            embed = discord.Embed(title="エラー", description="引数が不足しています。\n`&read_limit [文字数]`", color=0xff0000)
+            await ctx.send(embed=embed)
+            return
+
+        if limit.isdigit():
+            guild_id_str = str(guild_id)
+            guild = control_db.get_guild(guild_id_str)
+            if guild is None:
+                embed = discord.Embed(title="エラー", description="guild_id: {}は登録されていません。\n`&tts join` を正常に使うことで登録されます。".format(guild_id), color=0xff0000)
+                await ctx.send(embed=embed)
+                return
+            else:
+                control_db.set_read_limit(limit=int(limit), guild_id=guild_id_str)
+                embed = discord.Embed(title="サーバー設定", description="設定を更新しました。", color=0x00ff00)
+                embed.add_field(name="読み上げ上限文字数", value=limit)
+                await ctx.send(embed=embed)
 
 
     @commands.command(aliases=["aw"])

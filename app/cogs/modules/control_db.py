@@ -82,7 +82,7 @@ def get_guild(guild_id):
 
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT is_multi_line_read, is_name_read FROM guilds WHERE id = %s", (guild_id, ))
+            cursor.execute("SELECT is_multi_line_read, is_name_read, read_limit FROM guilds WHERE id = %s", (guild_id, ))
             result = cursor.fetchall()
 
             return result[0] if len(result) > 0 else None
@@ -164,7 +164,7 @@ def add_dictionary(word, read, guild_id):
                 cursor.execute("INSERT INTO dictionaries (dictionaries.word, dictionaries.read, dictionaries.guild_id) VALUES (%s, %s, %s)", (word, read, guild_id))
                 conn.commit()
     finally:
-        conn.close()
+        cursor.close()
 
 
 def delete_dictionary(id):
@@ -173,6 +173,17 @@ def delete_dictionary(id):
     try:
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM dictionaries WHERE id = %s", (id, ))
+            conn.commit()
+    finally:
+        cursor.close()
+
+
+def set_read_limit(limit, guild_id):
+    conn.ping(reconnect=True)
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE guilds SET guilds.read_limit = %s WHERE guilds.id = %s", (limit, guild_id))
             conn.commit()
     finally:
         cursor.close()
