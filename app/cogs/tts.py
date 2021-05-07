@@ -32,11 +32,6 @@ class TTS(commands.Cog):
                 name = message.author.display_name
                 get_msg = "{}、{}".format(name, get_msg)
 
-            # 単語登録処理
-            words = control_db.get_dictionaries(str(guild_id))
-            for word in words:
-                get_msg = get_msg.replace(word["word"], word["read"])
-
             # Discordスタンプ
             get_msg = get_msg.replace('<:', '')
             get_msg = re.sub(r':[0-9]*>', '', get_msg)
@@ -45,19 +40,24 @@ class TTS(commands.Cog):
             if len(message.mentions) > 0:
                 for user in message.mentions:
                     name = user.display_name
-                    get_msg = re.sub(r'<(?:@\!|@)[0-9]+>', name, get_msg)
+                    get_msg = re.sub(r'<(?:@\!|@)[0-9]+>', name, get_msg, count=1)
 
             # チャンネルメンションのパース
             if len(message.channel_mentions) > 0:
                 for channel in message.channel_mentions:
                     name = channel.name
-                    get_msg = re.sub(r'<#[0-9]+>', name, get_msg)
+                    get_msg = re.sub(r'<#[0-9]+>', name, get_msg, count=1)
 
             # ロールメンションのパース
             if len(message.role_mentions) > 0:
                 for role in message.role_mentions:
                     name = role.name
-                    get_msg = re.sub(r'<@&[0-9]+>', name, get_msg)
+                    get_msg = re.sub(r'<@&[0-9]+>', name, get_msg, count=1)
+
+            # 単語登録処理
+            words = control_db.get_dictionaries(str(guild_id))
+            for word in words:
+                get_msg = get_msg.replace(word["word"], word["read"])
 
             while (self.voice_channels[guild_id].is_playing()):
                 await asyncio.sleep(1)
