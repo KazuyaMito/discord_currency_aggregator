@@ -103,7 +103,7 @@ class TTS(commands.Cog):
             embed.add_field(name="join", value="コマンドを実行したユーザーがいるボイスチャンネルにBotが入室します。\nコマンドはjと省略できます。", inline=False)
             embed.add_field(name="end", value="読み上げを終了し、Botがボイスチャンネルから退出します。\nコマンドはeと省略できます。", inline=False)
             embed.add_field(name="read_name", value="名前読み上げの設定を変更します。\n`&tts read_name [on / off]`\nコマンドはrnと省略できます。", inline=False)
-            embed.add_field(name="read_name", value="複数行読み上げの設定を変更します。\n`&tts read_multi [on / off]`\nコマンドはrmと省略できます。", inline=False)
+            embed.add_field(name="read_multi", value="複数行読み上げの設定を変更します。\n`&tts read_multi [on / off]`\nコマンドはrmと省略できます。", inline=False)
             embed.add_field(name="read_limit", value="読み上げ文字数の上限を変更します。\n`&tts read_limit [0-9]`\nコマンドはrlと省略できます。", inline=False)
             await ctx.send(embed=embed)
             return
